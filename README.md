@@ -1,6 +1,6 @@
-# Exploding Kittens Web
+# BoomGato
 
-A no-login, in-memory multiplayer web version of Exploding Kittens Original Edition. The server is authoritative, lobbies are temporary, and Socket.IO powers live play.
+A no-login, in-memory multiplayer web card game based on Exploding Kittens Original Edition rules. The server is authoritative, lobbies are temporary, and Socket.IO powers live play.
 
 ## Local Development
 

@@ -91,7 +91,7 @@ function findImageUrl(page: cheerio.CheerioAPI, base: string): string | null {
 }
 
 async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, { headers: { 'user-agent': 'ExplodingKittensWeb/1.0' } });
+  const response = await fetch(url, { headers: { 'user-agent': 'BoomGato/1.0' } });
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
   return response.text();
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AVATARS } from '../shared/avatars';
 import { createCards } from '../shared/cards';
 import {
   addPlayer,
@@ -11,15 +12,16 @@ import {
   playNope,
   reinsertKitten,
   resolveNope,
-  startGame
+  startGame,
+  toPublicState
 } from '../shared/game';
 import type { CardType, GameState } from '../shared/types';
 
 const noShuffle = <T>(items: T[]) => items;
 
 function lobby(count: number): GameState {
-  const state = createLobbyState('ABCDE', createPlayer('p1', 'Ada', true));
-  for (let i = 2; i <= count; i += 1) addPlayer(state, createPlayer(`p${i}`, `P${i}`));
+  const state = createLobbyState('ABCDE', createPlayer('p1', 'Ada', true, AVATARS[0]!.id));
+  for (let i = 2; i <= count; i += 1) addPlayer(state, createPlayer(`p${i}`, `P${i}`, false, AVATARS[i - 1]!.id));
   return state;
 }
 
@@ -48,7 +50,18 @@ describe('setup', () => {
     const one = lobby(1);
     expect(() => startGame(one, 'p1')).toThrow(/2 to 5/);
     const five = lobby(5);
-    expect(() => addPlayer(five, createPlayer('p6', 'P6'))).toThrow(/2 to 5/);
+    expect(() => addPlayer(five, createPlayer('p6', 'P6', false, AVATARS[5]!.id))).toThrow(/2 to 5/);
+  });
+
+  it('rejects duplicate avatars in a lobby', () => {
+    const state = createLobbyState('ABCDE', createPlayer('p1', 'Ada', true, AVATARS[0]!.id));
+    expect(() => addPlayer(state, createPlayer('p2', 'Ben', false, AVATARS[0]!.id))).toThrow(/avatar/);
+  });
+
+  it('allows the same avatar in different lobbies', () => {
+    const a = createLobbyState('AAAAA', createPlayer('p1', 'Ada', true, AVATARS[0]!.id));
+    const b = createLobbyState('BBBBB', createPlayer('p2', 'Ben', true, AVATARS[0]!.id));
+    expect(a.players[0]!.avatarId).toBe(b.players[0]!.avatarId);
   });
 });
 
@@ -182,6 +195,21 @@ describe('turn validation and effects', () => {
     expect(state.currentPlayerId).toBe('p2');
   });
 
+  it('rejects placing a defused kitten on top when the deck has cards', () => {
+    const state = started(2);
+    state.deck.unshift(createCards(['exploding-kitten'])[0]!);
+    drawCard(state, 'p1');
+    expect(() => reinsertKitten(state, 'p1', 0)).toThrow(/below the top/);
+  });
+
+  it('allows placing a defused kitten at position zero when the deck is empty', () => {
+    const state = started(2);
+    state.deck = [createCards(['exploding-kitten'])[0]!];
+    drawCard(state, 'p1');
+    reinsertKitten(state, 'p1', 0);
+    expect(state.deck[0]?.type).toBe('exploding-kitten');
+  });
+
   it('eliminates a player without a defuse and finishes when one remains', () => {
     const state = started(2);
     state.players[0]!.hand = state.players[0]!.hand.filter((card) => card.type !== 'defuse');
@@ -190,6 +218,19 @@ describe('turn validation and effects', () => {
     expect(state.players[0]!.eliminated).toBe(true);
     expect(state.phase).toBe('finished');
     expect(state.winnerId).toBe('p2');
+  });
+
+  it('reports final rankings with winner first and eliminated players after', () => {
+    const state = started(3);
+    state.players[0]!.hand = state.players[0]!.hand.filter((card) => card.type !== 'defuse');
+    state.deck.unshift(createCards(['exploding-kitten'])[0]!);
+    drawCard(state, 'p1');
+    state.players[1]!.hand = state.players[1]!.hand.filter((card) => card.type !== 'defuse');
+    state.deck.unshift(createCards(['exploding-kitten'])[0]!);
+    drawCard(state, 'p2');
+    const publicState = toPublicState(state, 'p3');
+    expect(publicState.rankings.map((rank) => rank.name)).toEqual(['P3', 'P2', 'Ada']);
+    expect(publicState.rankings.map((rank) => rank.rank)).toEqual([1, 2, 3]);
   });
 
   it('handles favor card choice', () => {

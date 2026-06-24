@@ -56,7 +56,7 @@ app.get(/^\/(?!socket\.io).*/, (_req, res) => {
 io.on('connection', (socket) => {
   socket.on('createLobby', (payload, ack) =>
     safeAck(ack, () => {
-      const player = createPlayer(id(), payload.name, true);
+      const player = createPlayer(id(), payload.name, true, payload.avatarId);
       const code = uniqueLobbyCode();
       const state = createLobbyState(code, player);
       const token = id(24);
@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
     safeAck(ack, () => {
       const code = payload.code.trim().toUpperCase();
       const lobby = requireLobby(code);
-      const player = createPlayer(id(), payload.name);
+      const player = createPlayer(id(), payload.name, false, payload.avatarId);
       addPlayer(lobby.state, player);
       const token = id(24);
       lobby.sessions.set(player.id, token);
@@ -96,6 +96,13 @@ io.on('connection', (socket) => {
       socket.join(code);
       emitLobby(code);
       return { code, playerId: player.id, reconnectToken: expected };
+    })
+  );
+
+  socket.on('leaveLobby', (ack) =>
+    safeAck(ack, () => {
+      leaveLobby(socket.id);
+      return null;
     })
   );
 
@@ -142,7 +149,7 @@ httpServer.on('error', (error: NodeJS.ErrnoException) => {
 });
 
 httpServer.listen(port, () => {
-  console.log(`Exploding Kittens server listening on http://localhost:${port}`);
+  console.log(`BoomGato server listening on http://localhost:${port}`);
 });
 
 function mutate( socketId: string, ack: Ack<null>, action: (state: GameState, playerId: string) => void): void {
@@ -173,6 +180,33 @@ function emitLobby(code: string): void {
     const playerId = socketSessions.get(socketId)?.playerId ?? null;
     io.to(socketId).emit('state', toPublicState(lobby.state, playerId));
   }
+}
+
+function leaveLobby(socketId: string): void {
+  const session = socketSessions.get(socketId);
+  if (!session) throw new GameError('Join a lobby first.');
+  const lobby = requireLobby(session.code);
+  const player = lobby.state.players.find((item) => item.id === session.playerId);
+
+  socketSessions.delete(socketId);
+  io.sockets.sockets.get(socketId)?.leave(session.code);
+
+  if (lobby.state.phase === 'lobby') {
+    const index = lobby.state.players.findIndex((item) => item.id === session.playerId);
+    if (index >= 0) lobby.state.players.splice(index, 1);
+    lobby.sessions.delete(session.playerId);
+    if (lobby.state.players.length === 0) {
+      lobbies.delete(session.code);
+      return;
+    }
+    if (!lobby.state.players.some((item) => item.host)) {
+      lobby.state.players[0]!.host = true;
+    }
+  } else if (player) {
+    player.connected = false;
+  }
+
+  emitLobby(session.code);
 }
 
 function requireLobby(code: string): LobbyRuntime {

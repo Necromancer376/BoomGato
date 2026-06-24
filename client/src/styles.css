@@ -78,6 +78,12 @@ h2 {
   gap: 8px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brand {
   font-weight: 900;
 }
@@ -86,6 +92,22 @@ h2 {
   background: #fff1c2;
   color: #191714;
   border: 1px solid #e2c85a;
+}
+
+.leave-button {
+  background: #fffdf8;
+  color: #8a2f28;
+  border: 1px solid #e6b6ae;
+}
+
+.leave-button.in-surface,
+.rail-leave {
+  background: #fff4ef;
+}
+
+.rail-leave {
+  width: 100%;
+  margin: 0 0 12px;
 }
 
 .toast {
@@ -142,6 +164,221 @@ label {
   gap: 10px;
   margin-top: 14px;
   flex-wrap: wrap;
+}
+
+.avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.avatar-choice {
+  min-height: 58px;
+  padding: 4px;
+  background: #e4dccb;
+  color: #191714;
+  border: 2px solid transparent;
+}
+
+.avatar-choice.selected {
+  border-color: #191714;
+  background: #fff1c2;
+}
+
+.avatar {
+  --skin: #aaa38f;
+  --hair: #423f35;
+  --cloth: #747060;
+  --prop: #d8d2c4;
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #bdb39d;
+  vertical-align: middle;
+}
+
+.avatar-head,
+.avatar-hair,
+.avatar-eye,
+.avatar-body,
+.avatar-prop {
+  position: absolute;
+  display: block;
+}
+
+.avatar-head {
+  width: 18px;
+  height: 20px;
+  left: 11px;
+  top: 11px;
+  border-radius: 45% 45% 42% 42%;
+  background: var(--skin);
+  z-index: 2;
+}
+
+.avatar-hair {
+  width: 24px;
+  height: 13px;
+  left: 8px;
+  top: 8px;
+  border-radius: 60% 60% 20% 20%;
+  background: var(--hair);
+  z-index: 3;
+}
+
+.avatar-eye {
+  width: 7px;
+  height: 7px;
+  top: 19px;
+  z-index: 4;
+  border-radius: 50%;
+  background: #f1eee6;
+}
+
+.avatar-eye::after {
+  content: '';
+  position: absolute;
+  inset: 1px 2px;
+  border-radius: 50%;
+  background: #2e2b24;
+}
+
+.avatar-eye.left {
+  left: 12px;
+}
+
+.avatar-eye.right {
+  right: 12px;
+}
+
+.avatar-body {
+  width: 28px;
+  height: 19px;
+  left: 6px;
+  bottom: -6px;
+  border-radius: 50% 50% 0 0;
+  background: var(--cloth);
+  z-index: 1;
+}
+
+.avatar-prop {
+  z-index: 5;
+}
+
+.avatar-fan .avatar-prop {
+  width: 24px;
+  height: 22px;
+  right: 1px;
+  bottom: 1px;
+  border-radius: 100% 0 0 0;
+  background: #454237;
+  transform: rotate(12deg);
+}
+
+.avatar-spy .avatar-prop,
+.avatar-fedora .avatar-prop {
+  width: 28px;
+  height: 4px;
+  left: 6px;
+  top: 12px;
+  background: #403d34;
+  box-shadow: 4px -8px 0 2px #403d34;
+}
+
+.avatar-scarf .avatar-prop {
+  width: 18px;
+  height: 8px;
+  left: 11px;
+  bottom: 8px;
+  border-radius: 4px;
+  background: #d8d2c4;
+}
+
+.avatar-headset .avatar-prop {
+  width: 24px;
+  height: 18px;
+  left: 8px;
+  top: 9px;
+  border: 3px solid #353229;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+}
+
+.avatar-mustache .avatar-prop,
+.avatar-beard .avatar-prop {
+  width: 18px;
+  height: 6px;
+  left: 11px;
+  top: 25px;
+  border-radius: 50%;
+  background: #353229;
+}
+
+.avatar-newspaper .avatar-prop {
+  width: 22px;
+  height: 18px;
+  right: 0;
+  bottom: 2px;
+  background: #928c7d;
+  transform: rotate(8deg);
+}
+
+.avatar-glasses .avatar-prop {
+  width: 23px;
+  height: 8px;
+  left: 9px;
+  top: 18px;
+  border: 2px solid #353229;
+  border-radius: 6px;
+}
+
+.avatar-hood {
+  --hair: #24221c;
+  --cloth: #24221c;
+}
+
+.avatar-shadow {
+  --skin: #25231d;
+  --hair: #181713;
+  --cloth: #25231d;
+}
+
+.avatar-flower .avatar-prop {
+  width: 8px;
+  height: 8px;
+  right: 9px;
+  top: 8px;
+  border-radius: 50%;
+  background: #d8d2c4;
+  box-shadow: -5px 2px 0 #8d8879;
+}
+
+.avatar-tie .avatar-prop,
+.avatar-badge .avatar-prop,
+.avatar-vest .avatar-prop {
+  width: 6px;
+  height: 13px;
+  left: 17px;
+  bottom: 0;
+  background: #d8d2c4;
+}
+
+.avatar-apron .avatar-body {
+  background: linear-gradient(90deg, var(--cloth) 0 28%, #d8d2c4 28% 72%, var(--cloth) 72%);
+}
+
+.avatar-collar .avatar-prop {
+  width: 18px;
+  height: 7px;
+  left: 11px;
+  bottom: 9px;
+  background: #d8d2c4;
+  border-radius: 0 0 7px 7px;
 }
 
 .entry-actions > button,
@@ -232,6 +469,13 @@ h3 {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid transparent;
+}
+
+.player-row > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .player-row.active {
@@ -431,6 +675,38 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.rankings-panel {
+  background: #fffdf8;
+  border: 1px solid #e2dbcf;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.rankings-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: 44px 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f7f3ea;
+}
+
+.rank-row.winner {
+  background: #fff1c2;
+  border: 1px solid #e2c85a;
+}
+
+.rank-row small {
+  color: #645d52;
+  font-weight: 800;
 }
 
 .pending-panel span {
@@ -642,6 +918,21 @@ h3 {
 @media (max-width: 760px) {
   .topbar {
     padding: 0 12px;
+    height: auto;
+    min-height: 64px;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-block: 8px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+  }
+
+  .topbar-actions .code-pill,
+  .topbar-actions .leave-button {
+    flex: 1 1 0;
+    min-height: 42px;
   }
 
   .game-layout {

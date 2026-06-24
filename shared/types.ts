@@ -26,6 +26,7 @@ export interface Card {
 export interface Player {
   id: string;
   name: string;
+  avatarId: string;
   hand: Card[];
   eliminated: boolean;
   connected: boolean;
@@ -35,6 +36,7 @@ export interface Player {
 export interface PublicPlayer {
   id: string;
   name: string;
+  avatarId: string;
   handCount: number;
   eliminated: boolean;
   connected: boolean;
@@ -73,6 +75,14 @@ export interface TablePlay {
   actionLabel: string;
 }
 
+export interface PlayerRank {
+  playerId: string;
+  name: string;
+  avatarId: string;
+  rank: number;
+  status: 'winner' | 'eliminated';
+}
+
 export interface PendingFavorAction {
   kind: 'favor-give';
   requesterId: string;
@@ -98,6 +108,7 @@ export interface GameState {
   turnDebt: number;
   pending: PendingAction | null;
   winnerId: string | null;
+  eliminationOrder: string[];
   log: LogEntry[];
   seeTheFutureByPlayer: Record<string, Card[]>;
   tablePlay: TablePlay | null;
@@ -114,10 +125,12 @@ export interface PublicGameState {
   pending: PendingAction | null;
   tablePlay: TablePlay | null;
   winnerId: string | null;
+  rankings: PlayerRank[];
   log: LogEntry[];
   me: {
     id: string;
     name: string;
+    avatarId: string;
     hand: Card[];
     eliminated: boolean;
     host: boolean;
@@ -132,9 +145,10 @@ export interface LobbySummary {
 }
 
 export type ClientToServerEvents = {
-  createLobby: (payload: { name: string }, ack: Ack<LobbySummary>) => void;
-  joinLobby: (payload: { code: string; name: string }, ack: Ack<LobbySummary>) => void;
+  createLobby: (payload: { name: string; avatarId: string }, ack: Ack<LobbySummary>) => void;
+  joinLobby: (payload: { code: string; name: string; avatarId: string }, ack: Ack<LobbySummary>) => void;
   reconnectLobby: (payload: { code: string; playerId: string; reconnectToken: string }, ack: Ack<LobbySummary>) => void;
+  leaveLobby: (ack: Ack<null>) => void;
   startGame: (ack: Ack<null>) => void;
   playCard: (payload: { cardId: string; targetId?: string }, ack: Ack<null>) => void;
   playCombo: (payload: { cardIds: string[]; targetId: string; namedType?: CardType }, ack: Ack<null>) => void;

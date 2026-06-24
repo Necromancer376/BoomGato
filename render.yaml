@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: exploding-kittens-web
+    name: boomgato
     runtime: node
     plan: free
     buildCommand: npm install && npm run build

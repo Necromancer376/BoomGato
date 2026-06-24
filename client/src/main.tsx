@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { io, Socket } from 'socket.io-client';
-import { Bomb, Copy, Crown, Eye, Hand, Play, Timer, Users, Zap } from 'lucide-react';
+import { Bomb, Copy, Crown, Eye, Hand, LogOut, Play, Timer, Users, Zap } from 'lucide-react';
 import type { AckResult, Card, CardType, ClientToServerEvents, PublicGameState, ServerToClientEvents } from '../../shared/types';
 import { CARD_INFO, CARD_TYPES } from '../../shared/cards';
+import { AVATARS, DEFAULT_AVATAR_ID } from '../../shared/avatars';
 import './styles.css';
 
 type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -59,14 +60,29 @@ function App() {
     localStorage.setItem('ek.reconnectToken', result.data.reconnectToken);
   }
 
+  async function leave() {
+    const result = await call<null>('leaveLobby');
+    if (!result.ok) return;
+    clearStoredSession();
+    setState(null);
+    setError('');
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand">
           <Bomb size={22} />
-          <span>Exploding Kittens</span>
+          <span>BoomGato</span>
         </div>
-        {state && <LobbyCode code={state.code} />}
+        {state && (
+          <div className="topbar-actions">
+            <LobbyCode code={state.code} />
+            <button className="leave-button" disabled={busy} onClick={leave}>
+              <LogOut size={15} /> Leave lobby
+            </button>
+          </div>
+        )}
       </header>
 
       {error && (
@@ -78,13 +94,13 @@ function App() {
       {!state && (
         <Entry
           busy={busy}
-          create={(name) => call<{ code: string; playerId: string; reconnectToken: string }>('createLobby', { name }).then(remember)}
-          join={(code, name) => call<{ code: string; playerId: string; reconnectToken: string }>('joinLobby', { code, name }).then(remember)}
+          create={(name, avatarId) => call<{ code: string; playerId: string; reconnectToken: string }>('createLobby', { name, avatarId }).then(remember)}
+          join={(code, name, avatarId) => call<{ code: string; playerId: string; reconnectToken: string }>('joinLobby', { code, name, avatarId }).then(remember)}
           clearError={() => setError('')}
         />
       )}
-      {state?.phase === 'lobby' && <Lobby state={state} busy={busy} start={() => call('startGame')} />}
-      {state && state.phase !== 'lobby' && <Game state={state} busy={busy} call={call} />}
+      {state?.phase === 'lobby' && <Lobby state={state} busy={busy} start={() => call('startGame')} leave={leave} />}
+      {state && state.phase !== 'lobby' && <Game state={state} busy={busy} call={call} leave={leave} />}
     </main>
   );
 }
@@ -96,12 +112,13 @@ function Entry({
   clearError
 }: {
   busy: boolean;
-  create: (name: string) => void;
-  join: (code: string, name: string) => void;
+  create: (name: string, avatarId: string) => void;
+  join: (code: string, name: string, avatarId: string) => void;
   clearError: () => void;
 }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
   return (
     <section className="entry">
       <div className="entry-panel">
@@ -119,8 +136,24 @@ function Entry({
             maxLength={24}
           />
         </label>
+        <div className="avatar-picker" aria-label="Choose avatar">
+          {AVATARS.map((avatar) => (
+            <button
+              className={`avatar-choice ${avatar.id === avatarId ? 'selected' : ''}`}
+              type="button"
+              title={avatar.label}
+              onClick={() => {
+                setAvatarId(avatar.id);
+                clearError();
+              }}
+              key={avatar.id}
+            >
+              <Avatar avatarId={avatar.id} />
+            </button>
+          ))}
+        </div>
         <div className="entry-actions">
-          <button disabled={busy} onClick={() => create(name)}>
+          <button disabled={busy} onClick={() => create(name, avatarId)}>
             <Play size={16} /> Create lobby
           </button>
           <div className="join-row">
@@ -133,7 +166,7 @@ function Entry({
               placeholder="CODE"
               maxLength={5}
             />
-            <button disabled={busy} onClick={() => join(code, name)}>
+            <button disabled={busy} onClick={() => join(code, name, avatarId)}>
               Join
             </button>
           </div>
@@ -143,7 +176,7 @@ function Entry({
   );
 }
 
-function Lobby({ state, busy, start }: { state: PublicGameState; busy: boolean; start: () => void }) {
+function Lobby({ state, busy, start, leave }: { state: PublicGameState; busy: boolean; start: () => void; leave: () => void }) {
   return (
     <section className="lobby">
       <div className="lobby-header">
@@ -154,11 +187,14 @@ function Lobby({ state, busy, start }: { state: PublicGameState; busy: boolean; 
         <button disabled={busy || !state.me?.host || state.players.length < 2} onClick={start}>
           <Play size={16} /> Start game
         </button>
+        <button className="leave-button in-surface" disabled={busy} onClick={leave}>
+          <LogOut size={15} /> Leave lobby
+        </button>
       </div>
       <div className="players-grid">
         {state.players.map((player) => (
           <div className="player-tile" key={player.id}>
-            <span>{player.name}</span>
+            <span><Avatar avatarId={player.avatarId} /> {player.name}</span>
             {player.host && <Crown size={16} />}
             <small>{player.connected ? 'connected' : 'reconnecting'}</small>
           </div>
@@ -168,7 +204,17 @@ function Lobby({ state, busy, start }: { state: PublicGameState; busy: boolean; 
   );
 }
 
-function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; call: <T>(event: keyof ClientToServerEvents, payload?: unknown) => Promise<AckResult<T>> }) {
+function Game({
+  state,
+  busy,
+  call,
+  leave
+}: {
+  state: PublicGameState;
+  busy: boolean;
+  call: <T>(event: keyof ClientToServerEvents, payload?: unknown) => Promise<AckResult<T>>;
+  leave: () => void;
+}) {
   const [selected, setSelected] = useState<string[]>([]);
   const [targetId, setTargetId] = useState('');
   const [namedType, setNamedType] = useState<CardType>('defuse');
@@ -217,9 +263,12 @@ function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; ca
     <section className="game-layout">
       <aside className="left-rail">
         <h2><Users size={17} /> Players</h2>
+        <button className="leave-button rail-leave" disabled={busy} onClick={leave}>
+          <LogOut size={15} /> Leave lobby
+        </button>
         {state.players.map((player) => (
           <div className={`player-row ${player.id === state.currentPlayerId ? 'active' : ''} ${player.eliminated ? 'out' : ''}`} key={player.id}>
-            <span>{player.name}</span>
+            <span><Avatar avatarId={player.avatarId} /> {player.name}</span>
             <small>{player.eliminated ? 'spectator' : `${player.handCount} cards`}</small>
           </div>
         ))}
@@ -244,6 +293,8 @@ function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; ca
         </div>
 
         {state.pending && <PendingPanel state={state} call={call} liveTargets={liveTargets} />}
+
+        {state.phase === 'finished' && <RankingsPanel state={state} />}
 
         {Boolean(me?.seeTheFuture.length) && (
           <div className="peek-panel">
@@ -433,12 +484,13 @@ function PendingPanel({ state, call }: { state: PublicGameState; liveTargets: { 
     );
   }
   if (pending.kind === 'defuse-reinsert' && pending.playerId === me.id) {
+    const minPosition = state.deckCount > 0 ? 1 : 0;
     return (
       <div className="pending-panel">
         <strong>Defused</strong>
         <span>Choose where to put the Exploding Kitten back.</span>
-        <input type="range" min={0} max={state.deckCount} value={position} onChange={(event) => setPosition(Number(event.target.value))} />
-        <button onClick={() => call('reinsertKitten', { position })}>Insert at position {position}</button>
+        <input type="range" min={minPosition} max={state.deckCount} value={Math.max(position, minPosition)} onChange={(event) => setPosition(Number(event.target.value))} />
+        <button onClick={() => call('reinsertKitten', { position: Math.max(position, minPosition) })}>Insert at position {Math.max(position, minPosition)}</button>
       </div>
     );
   }
@@ -502,6 +554,37 @@ function Pile({ title, count }: { title: string; count: number }) {
       <span>{title}</span>
       <strong>{count}</strong>
     </div>
+  );
+}
+
+function RankingsPanel({ state }: { state: PublicGameState }) {
+  return (
+    <section className="rankings-panel">
+      <h2>Final ranking</h2>
+      <div className="rankings-list">
+        {state.rankings.map((item) => (
+          <div className={`rank-row ${item.status}`} key={item.playerId}>
+            <strong>#{item.rank}</strong>
+            <Avatar avatarId={item.avatarId} />
+            <span>{item.name}</span>
+            <small>{item.status === 'winner' ? 'Winner' : 'Eliminated'}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Avatar({ avatarId }: { avatarId: string }) {
+  return (
+    <span className={`avatar avatar-${avatarId}`} aria-hidden="true">
+      <span className="avatar-head" />
+      <span className="avatar-hair" />
+      <span className="avatar-eye left" />
+      <span className="avatar-eye right" />
+      <span className="avatar-body" />
+      <span className="avatar-prop" />
+    </span>
   );
 }
 

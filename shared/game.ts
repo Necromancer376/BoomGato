@@ -1,4 +1,5 @@
 import { CARD_INFO, createCards } from './cards.js';
+import { DEFAULT_AVATAR_ID, isAvatarId } from './avatars.js';
 import type { Card, CardType, GameState, LogEntry, PendingNopeAction, Player, PublicGameState } from './types.js';
 
 const NOPE_WINDOW_MS = 8000;
@@ -17,16 +18,19 @@ export function createLobbyState(code: string, host: Player): GameState {
     turnDebt: 0,
     pending: null,
     winnerId: null,
+    eliminationOrder: [],
     log: [log(`${host.name} created the lobby.`)],
     seeTheFutureByPlayer: {},
     tablePlay: null
   };
 }
 
-export function createPlayer(id: string, name: string, host = false): Player {
+export function createPlayer(id: string, name: string, host = false, avatarId = DEFAULT_AVATAR_ID): Player {
+  if (!isAvatarId(avatarId)) throw new GameError('Choose a valid avatar.');
   return {
     id,
     name: cleanName(name),
+    avatarId,
     hand: [],
     eliminated: false,
     connected: true,
@@ -46,6 +50,9 @@ export function addPlayer(state: GameState, player: Player): void {
   if (state.players.some((p) => p.name.toLowerCase() === player.name.toLowerCase())) {
     throw new GameError('That name is already in this lobby.');
   }
+  if (state.players.some((p) => p.avatarId === player.avatarId)) {
+    throw new GameError('That avatar is already taken in this lobby.');
+  }
   state.players.push(player);
   addLog(state, `${player.name} joined the lobby.`);
 }
@@ -61,6 +68,7 @@ export function startGame(state: GameState, hostId: string, shuffleFn = shuffle)
   state.tablePlay = null;
   state.turnDebt = 1;
   state.winnerId = null;
+  state.eliminationOrder = [];
   state.seeTheFutureByPlayer = {};
   for (const player of state.players) {
     player.eliminated = false;
@@ -166,6 +174,7 @@ export function drawCard(state: GameState, playerId: string): void {
     const defuse = player.hand.find((item) => item.type === 'defuse');
     if (!defuse) {
       player.eliminated = true;
+      recordElimination(state, player.id);
       state.discard.push(card, ...player.hand);
       player.hand = [];
       addLog(state, `${player.name} exploded and is now spectating.`);
@@ -189,7 +198,10 @@ export function reinsertKitten(state: GameState, playerId: string, position: num
   if (state.pending?.kind !== 'defuse-reinsert' || state.pending.playerId !== playerId) {
     throw new GameError('You do not have a kitten to reinsert.');
   }
-  const index = clamp(Math.floor(position), 0, state.deck.length);
+  if (state.deck.length > 0 && Math.floor(position) < 1) {
+    throw new GameError('You must place the kitten at least one card below the top.');
+  }
+  const index = state.deck.length === 0 ? 0 : clamp(Math.floor(position), 1, state.deck.length);
   state.deck.splice(index, 0, state.pending.kitten);
   state.pending = null;
   addLog(state, `${getPlayer(state, playerId).name} put the kitten back into the draw pile.`);
@@ -217,6 +229,7 @@ export function toPublicState(state: GameState, playerId: string | null): Public
     players: state.players.map((player) => ({
       id: player.id,
       name: player.name,
+      avatarId: player.avatarId,
       handCount: player.hand.length,
       eliminated: player.eliminated,
       connected: player.connected,
@@ -229,11 +242,13 @@ export function toPublicState(state: GameState, playerId: string | null): Public
     pending: state.pending,
     tablePlay: state.tablePlay,
     winnerId: state.winnerId,
+    rankings: getRankings(state),
     log: state.log.slice(-80),
     me: me
       ? {
           id: me.id,
           name: me.name,
+          avatarId: me.avatarId,
           hand: me.hand,
           eliminated: me.eliminated,
           host: me.host,
@@ -382,6 +397,31 @@ function checkWinner(state: GameState): void {
     state.tablePlay = null;
     addLog(state, `${living[0]!.name} wins!`);
   }
+}
+
+function recordElimination(state: GameState, playerId: string): void {
+  if (!state.eliminationOrder.includes(playerId)) state.eliminationOrder.push(playerId);
+}
+
+function getRankings(state: GameState): PublicGameState['rankings'] {
+  if (state.phase !== 'finished' || !state.winnerId) return [];
+  const byId = new Map(state.players.map((player) => [player.id, player]));
+  const winner = byId.get(state.winnerId);
+  const ordered = [
+    ...(winner ? [winner] : []),
+    ...state.eliminationOrder
+      .slice()
+      .reverse()
+      .map((id) => byId.get(id))
+      .filter((player): player is Player => player !== undefined && player.id !== state.winnerId)
+  ];
+  return ordered.map((player, index) => ({
+    playerId: player.id,
+    name: player.name,
+    avatarId: player.avatarId,
+    rank: index + 1,
+    status: player.id === state.winnerId ? 'winner' : 'eliminated'
+  }));
 }
 
 function actionLabel(action: PendingNopeAction['action'], cards: Card[]): string {
