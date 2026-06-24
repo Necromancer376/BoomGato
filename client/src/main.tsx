@@ -40,7 +40,8 @@ function App() {
       setBusy(true);
       const done = (result: AckResult<T>) => {
         setBusy(false);
-        if (!result.ok) setError(result.error);
+        if (result.ok) setError('');
+        else setError(result.error);
         resolve(result);
       };
       if (payload === undefined) {
@@ -52,6 +53,7 @@ function App() {
 
   async function remember(result: AckResult<{ code: string; playerId: string; reconnectToken: string }>) {
     if (!result.ok) return;
+    setError('');
     localStorage.setItem('ek.code', result.data.code);
     localStorage.setItem('ek.playerId', result.data.playerId);
     localStorage.setItem('ek.reconnectToken', result.data.reconnectToken);
@@ -78,6 +80,7 @@ function App() {
           busy={busy}
           create={(name) => call<{ code: string; playerId: string; reconnectToken: string }>('createLobby', { name }).then(remember)}
           join={(code, name) => call<{ code: string; playerId: string; reconnectToken: string }>('joinLobby', { code, name }).then(remember)}
+          clearError={() => setError('')}
         />
       )}
       {state?.phase === 'lobby' && <Lobby state={state} busy={busy} start={() => call('startGame')} />}
@@ -86,7 +89,17 @@ function App() {
   );
 }
 
-function Entry({ busy, create, join }: { busy: boolean; create: (name: string) => void; join: (code: string, name: string) => void }) {
+function Entry({
+  busy,
+  create,
+  join,
+  clearError
+}: {
+  busy: boolean;
+  create: (name: string) => void;
+  join: (code: string, name: string) => void;
+  clearError: () => void;
+}) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   return (
@@ -96,14 +109,30 @@ function Entry({ busy, create, join }: { busy: boolean; create: (name: string) =
         <p>Original Edition rules, in-memory lobbies, and nothing to set up beyond opening the page.</p>
         <label>
           Your name
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Player name" maxLength={24} />
+          <input
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              clearError();
+            }}
+            placeholder="Player name"
+            maxLength={24}
+          />
         </label>
         <div className="entry-actions">
           <button disabled={busy} onClick={() => create(name)}>
             <Play size={16} /> Create lobby
           </button>
           <div className="join-row">
-            <input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="CODE" maxLength={5} />
+            <input
+              value={code}
+              onChange={(event) => {
+                setCode(event.target.value.toUpperCase());
+                clearError();
+              }}
+              placeholder="CODE"
+              maxLength={5}
+            />
             <button disabled={busy} onClick={() => join(code, name)}>
               Join
             </button>
@@ -205,6 +234,7 @@ function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; ca
 
         <div className="table">
           <Pile title="Draw pile" count={state.deckCount} />
+          {state.tablePlay && <TablePlay play={state.tablePlay} />}
           <div className="discard">
             <span>Discard</span>
             {state.discardTop ? <CardImage card={state.discardTop} /> : <div className="empty-card">empty</div>}
@@ -225,19 +255,11 @@ function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; ca
         <div className="hand-zone">
           <div className="hand-header">
             <h2><Hand size={18} /> Your hand</h2>
-            {isMyTurn && <button className="end-turn-button" disabled={busy} onClick={() => call('drawCard')}>End turn: draw card</button>}
-          </div>
-          <div className="hand-cards">
-            {me?.hand.map((card) => (
-              <CardButton
-                card={card}
-                selected={selectedSet.has(card.id)}
-                selectable={canSelectCard(card, state, selectedCards)}
-                mode={selectionModeLabel(card, state, selectedCards)}
-                onClick={() => toggle(card)}
-                key={card.id}
-              />
-            ))}
+            {isMyTurn && (
+              <button className="end-turn-button" disabled={busy} onClick={() => call('drawCard')}>
+                {state.turnDebt > 1 ? `Draw 1 of ${state.turnDebt} attack turns` : 'Draw card to end turn'}
+              </button>
+            )}
           </div>
           <SelectionHint state={state} selectedCards={selectedCards} />
           <ActionBar
@@ -251,6 +273,18 @@ function Game({ state, busy, call }: { state: PublicGameState; busy: boolean; ca
             playSelection={playSelection}
             busy={busy}
           />
+          <div className="hand-cards">
+            {me?.hand.map((card) => (
+              <CardButton
+                card={card}
+                selected={selectedSet.has(card.id)}
+                selectable={canSelectCard(card, state, selectedCards)}
+                mode={selectionModeLabel(card, state, selectedCards)}
+                onClick={() => toggle(card)}
+                key={card.id}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -435,6 +469,32 @@ function TableAlert({ tone, text, persistent = false }: { tone: 'boom' | 'safe' 
   );
 }
 
+function TablePlay({ play }: { play: NonNullable<PublicGameState['tablePlay']> }) {
+  return (
+    <div className={`table-play ${play.cards.length > 1 ? 'compact' : ''}`}>
+      <span>{play.actorName} played</span>
+      <div className="played-stack">
+        {play.cards.map((card, index) => (
+          <div className="played-card" style={{ '--i': index, '--count': play.cards.length } as React.CSSProperties} key={card.id}>
+            <CardImage card={card} />
+          </div>
+        ))}
+      </div>
+      <strong>{play.actionLabel}</strong>
+      {play.nopeCards.length > 0 && (
+        <div className="nope-stack">
+          <span>{play.nopeCards.length} Nope{play.nopeCards.length === 1 ? '' : 's'}</span>
+          <div>
+            {play.nopeCards.slice(-3).map((card) => (
+              <CardImage card={card} key={card.id} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Pile({ title, count }: { title: string; count: number }) {
   return (
     <div className="pile">
@@ -446,11 +506,17 @@ function Pile({ title, count }: { title: string; count: number }) {
 }
 
 function CardImage({ card }: { card: Card }) {
-  return <img src={card.image} alt={card.title} onError={(event) => {
-    const img = event.currentTarget;
-    img.onerror = null;
-    img.src = `/cards/${card.type}.svg`;
-  }} />;
+  const [src, setSrc] = useState(card.image);
+  useEffect(() => setSrc(card.image), [card.image]);
+  return (
+    <img
+      src={src}
+      alt={card.title}
+      onError={() => {
+        if (!src.endsWith('.svg')) setSrc(`/cards/${card.type}.svg`);
+      }}
+    />
+  );
 }
 
 function LobbyCode({ code }: { code: string }) {

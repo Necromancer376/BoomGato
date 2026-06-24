@@ -18,7 +18,8 @@ export function createLobbyState(code: string, host: Player): GameState {
     pending: null,
     winnerId: null,
     log: [log(`${host.name} created the lobby.`)],
-    seeTheFutureByPlayer: {}
+    seeTheFutureByPlayer: {},
+    tablePlay: null
   };
 }
 
@@ -57,6 +58,7 @@ export function startGame(state: GameState, hostId: string, shuffleFn = shuffle)
   state.phase = 'playing';
   state.discard = [];
   state.pending = null;
+  state.tablePlay = null;
   state.turnDebt = 1;
   state.winnerId = null;
   state.seeTheFutureByPlayer = {};
@@ -135,6 +137,7 @@ export function playNope(state: GameState, playerId: string, cardId: string): vo
   state.pending.nopePlayerIds.push(playerId);
   state.pending.expiresAt = Date.now() + NOPE_WINDOW_MS;
   state.discard.push(card);
+  if (state.tablePlay) state.tablePlay.nopeCards.push(card);
   addLog(state, `${player.name} played Nope.`);
 }
 
@@ -146,9 +149,11 @@ export function resolveNope(state: GameState): void {
   if (pending.nopeCount % 2 === 1) {
     state.discard.push(...pending.cards);
     addLog(state, `${actor.name}'s action was Noped.`);
+    state.tablePlay = null;
     return;
   }
   applyAction(state, pending);
+  state.tablePlay = null;
 }
 
 export function drawCard(state: GameState, playerId: string): void {
@@ -222,6 +227,7 @@ export function toPublicState(state: GameState, playerId: string | null): Public
     currentPlayerId: state.currentPlayerId,
     turnDebt: state.turnDebt,
     pending: state.pending,
+    tablePlay: state.tablePlay,
     winnerId: state.winnerId,
     log: state.log.slice(-80),
     me: me
@@ -246,7 +252,7 @@ export function maybeAutoResolveNope(state: GameState): boolean {
 }
 
 function actionFromCard(state: GameState, actorId: string, card: Card, targetId?: string): PendingNopeAction['action'] {
-  if (card.type === 'attack') return { type: 'attack' };
+  if (card.type === 'attack') return { type: 'attack', turns: state.turnDebt > 1 ? state.turnDebt + 2 : 2 };
   if (card.type === 'skip') return { type: 'skip' };
   if (card.type === 'favor') return { type: 'favor', targetId: getLivingTarget(state, targetId ?? '', actorId).id };
   if (card.type === 'shuffle') return { type: 'shuffle' };
@@ -256,6 +262,7 @@ function actionFromCard(state: GameState, actorId: string, card: Card, targetId?
 
 function createNopeWindow(state: GameState, actorId: string, cards: Card[], action: PendingNopeAction['action']): void {
   if (action.type === 'favor' && !action.targetId) throw new GameError('Choose a player for Favor.');
+  const actor = getPlayer(state, actorId);
   state.pending = {
     kind: 'nope',
     actorId,
@@ -266,7 +273,18 @@ function createNopeWindow(state: GameState, actorId: string, cards: Card[], acti
     nopeCount: 0,
     expiresAt: Date.now() + NOPE_WINDOW_MS
   };
-  addLog(state, `${getPlayer(state, actorId).name} played ${cards.map((card) => card.title).join(' + ')}.`);
+  state.tablePlay = {
+    actorId,
+    actorName: actor.name,
+    cards,
+    nopeCards: [],
+    actionLabel: actionLabel(action, cards)
+  };
+  addLog(state, `${actor.name} played ${cards.map((card) => card.title).join(' + ')}.`);
+  if (action.type === 'attack') {
+    state.turnDebt = 1;
+    advanceToNextPlayer(state);
+  }
 }
 
 function applyAction(state: GameState, pending: PendingNopeAction): void {
@@ -275,8 +293,7 @@ function applyAction(state: GameState, pending: PendingNopeAction): void {
   switch (pending.action.type) {
     case 'attack':
       addLog(state, `${actor.name} attacked the next player.`);
-      state.turnDebt = Math.max(0, state.turnDebt - 1) + 2;
-      advanceToNextPlayer(state);
+      state.turnDebt = pending.action.turns;
       break;
     case 'skip':
       addLog(state, `${actor.name} skipped a draw.`);
@@ -362,8 +379,16 @@ function checkWinner(state: GameState): void {
     state.winnerId = living[0]!.id;
     state.currentPlayerId = null;
     state.pending = null;
+    state.tablePlay = null;
     addLog(state, `${living[0]!.name} wins!`);
   }
+}
+
+function actionLabel(action: PendingNopeAction['action'], cards: Card[]): string {
+  if (action.type === 'combo-two') return 'Two of a kind';
+  if (action.type === 'combo-three') return 'Three of a kind';
+  if (action.type === 'attack') return `Attack: ${action.turns} turns`;
+  return cards.map((card) => card.title).join(' + ');
 }
 
 function assertActiveTurn(state: GameState, playerId: string): void {

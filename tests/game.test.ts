@@ -75,9 +75,60 @@ describe('turn validation and effects', () => {
     give(state, 'p1', ['attack']);
     const attack = state.players[0]!.hand.find((card) => card.type === 'attack')!;
     playCard(state, 'p1', attack.id);
+    expect(state.currentPlayerId).toBe('p2');
+    expect(state.turnDebt).toBe(1);
     resolveNope(state);
     expect(state.currentPlayerId).toBe('p2');
     expect(state.turnDebt).toBe(2);
+  });
+
+  it('keeps played cards visible while the Nope window is open', () => {
+    const state = started(2);
+    give(state, 'p1', ['skip', 'skip']);
+    const pair = state.players[0]!.hand.filter((card) => card.type === 'skip').slice(-2);
+    playCombo(state, 'p1', pair.map((card) => card.id), 'p2');
+    expect(state.tablePlay?.cards.map((card) => card.type)).toEqual(['skip', 'skip']);
+    expect(state.tablePlay?.actionLabel).toBe('Two of a kind');
+    resolveNope(state);
+    expect(state.tablePlay).toBeNull();
+  });
+
+  it('skips only one pending attack turn', () => {
+    const state = started(3);
+    state.currentPlayerId = 'p2';
+    state.turnDebt = 2;
+    give(state, 'p2', ['skip']);
+    const skip = state.players[1]!.hand.find((card) => card.type === 'skip')!;
+    playCard(state, 'p2', skip.id);
+    resolveNope(state);
+    expect(state.currentPlayerId).toBe('p2');
+    expect(state.turnDebt).toBe(1);
+  });
+
+  it('does not return a Noped Attack to the attacker', () => {
+    const state = started(2);
+    give(state, 'p1', ['attack']);
+    give(state, 'p2', ['nope']);
+    const attack = state.players[0]!.hand.find((card) => card.type === 'attack')!;
+    playCard(state, 'p1', attack.id);
+    const nope = state.players[1]!.hand.find((card) => card.type === 'nope')!;
+    playNope(state, 'p2', nope.id);
+    resolveNope(state);
+    expect(state.currentPlayerId).toBe('p2');
+    expect(state.turnDebt).toBe(1);
+  });
+
+  it('stacks attacks by transferring current debt plus two turns', () => {
+    const state = started(3);
+    state.currentPlayerId = 'p2';
+    state.turnDebt = 2;
+    give(state, 'p2', ['attack']);
+    const attack = state.players[1]!.hand.find((card) => card.type === 'attack')!;
+    playCard(state, 'p2', attack.id);
+    expect(state.currentPlayerId).toBe('p3');
+    resolveNope(state);
+    expect(state.currentPlayerId).toBe('p3');
+    expect(state.turnDebt).toBe(4);
   });
 
   it('prevents the actor from Noping their own action', () => {

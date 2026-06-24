@@ -144,6 +144,11 @@ label {
   flex-wrap: wrap;
 }
 
+.entry-actions > button,
+.join-row button {
+  flex: 0 0 auto;
+}
+
 .join-row {
   margin-top: 0;
 }
@@ -291,6 +296,80 @@ h3 {
   border: 1px solid #d6cbbb;
   box-shadow: 0 12px 30px rgba(70, 48, 22, 0.14);
   text-align: center;
+}
+
+.table-play {
+  width: 180px;
+  min-height: 224px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fffdf8;
+  border: 2px solid #f0c24d;
+  box-shadow: 0 16px 34px rgba(70, 48, 22, 0.16);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  text-align: center;
+  animation: discard-pop 240ms ease-out;
+}
+
+.table-play > span,
+.nope-stack span {
+  color: #645d52;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.table-play > strong {
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.played-stack {
+  position: relative;
+  width: 118px;
+  height: 166px;
+}
+
+.played-card {
+  position: absolute;
+  inset: 0;
+  transform:
+    translateX(calc((var(--i) - (var(--count) - 1) / 2) * 18px))
+    rotate(calc((var(--i) - (var(--count) - 1) / 2) * 8deg));
+  transform-origin: 50% 88%;
+}
+
+.played-card img {
+  width: 118px;
+  height: 166px;
+  border-radius: 7px;
+  box-shadow: 0 8px 18px rgba(25, 23, 20, 0.18);
+}
+
+.nope-stack {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.nope-stack div {
+  display: flex;
+  justify-content: center;
+  min-height: 34px;
+}
+
+.nope-stack img {
+  width: 24px;
+  height: 34px;
+  border-radius: 3px;
+  margin-left: -7px;
+  border: 1px solid #fffdf8;
+}
+
+.nope-stack img:first-child {
+  margin-left: 0;
 }
 
 .pile img {
@@ -584,28 +663,55 @@ h3 {
 
   .table {
     min-height: 220px;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px;
   }
 
   .pile,
   .discard {
-    width: 132px;
-    height: 184px;
+    width: 108px;
+    height: 158px;
   }
 
   .pile img {
-    width: 96px;
-    height: 136px;
+    width: 76px;
+    height: 106px;
   }
 
   .pile strong {
-    translate: 42px -56px;
+    width: 34px;
+    height: 34px;
+    translate: 34px -44px;
+    font-size: 15px;
   }
 
   .discard img,
   .empty-card {
-    width: 96px;
-    height: 136px;
+    width: 76px;
+    height: 106px;
+  }
+
+  .table-play {
+    width: 124px;
+    min-height: 172px;
+    order: -1;
+  }
+
+  .played-stack {
+    width: 76px;
+    height: 106px;
+  }
+
+  .played-card {
+    transform:
+      translateX(calc((var(--i) - (var(--count) - 1) / 2) * 12px))
+      rotate(calc((var(--i) - (var(--count) - 1) / 2) * 8deg));
+  }
+
+  .played-card img {
+    width: 76px;
+    height: 106px;
   }
 
   .entry-panel,
@@ -615,7 +721,44 @@ h3 {
 
   .entry-panel h1,
   .lobby h1 {
-    font-size: 28px;
+    font-size: 26px;
+  }
+
+  .entry {
+    align-items: start;
+    padding: 14px;
+  }
+
+  .entry-actions,
+  .join-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .entry-actions > button,
+  .join-row button,
+  .join-row input,
+  .entry-panel input {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .action-bar {
+    position: sticky;
+    top: 76px;
+    z-index: 4;
+    padding: 8px;
+    margin: 0 -4px 10px;
+    border-radius: 8px;
+    background: #fffdf8;
+    border: 1px solid #e2dbcf;
+    box-shadow: 0 10px 24px rgba(54, 42, 24, 0.12);
+  }
+
+  .action-bar select,
+  .action-bar button {
+    flex: 1 1 100%;
+    min-height: 44px;
   }
 }
 

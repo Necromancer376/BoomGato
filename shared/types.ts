@@ -53,7 +53,7 @@ export interface PendingNopeAction {
   cardIds: string[];
   cards: Card[];
   action:
-    | { type: 'attack' }
+    | { type: 'attack'; turns: number }
     | { type: 'skip' }
     | { type: 'favor'; targetId: string }
     | { type: 'shuffle' }
@@ -63,6 +63,14 @@ export interface PendingNopeAction {
   nopePlayerIds: string[];
   nopeCount: number;
   expiresAt: number;
+}
+
+export interface TablePlay {
+  actorId: string;
+  actorName: string;
+  cards: Card[];
+  nopeCards: Card[];
+  actionLabel: string;
 }
 
 export interface PendingFavorAction {
@@ -92,6 +100,7 @@ export interface GameState {
   winnerId: string | null;
   log: LogEntry[];
   seeTheFutureByPlayer: Record<string, Card[]>;
+  tablePlay: TablePlay | null;
 }
 
 export interface PublicGameState {
@@ -103,6 +112,7 @@ export interface PublicGameState {
   currentPlayerId: string | null;
   turnDebt: number;
   pending: PendingAction | null;
+  tablePlay: TablePlay | null;
   winnerId: string | null;
   log: LogEntry[];
   me: {
