@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" role="img" aria-label="Cattermelon">
+  <rect width="240" height="336" rx="18" fill="#fffaf1"/>
+  <rect x="10" y="10" width="220" height="316" rx="14" fill="#4f9d69"/>
+  <rect x="24" y="24" width="192" height="288" rx="12" fill="#fffdf7" opacity=".94"/>
+  <circle cx="120" cy="134" r="58" fill="#4f9d69" opacity=".18"/><path d="M72 142a48 48 0 0 1 96 0q-48 44-96 0Z" fill="#65b96f" stroke="#4f9d69" stroke-width="8"/><path d="M87 139q33 25 66 0" fill="none" stroke="#f8cad0" stroke-width="14"/>
+  <text x="120" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#161616">Cattermelon</text>
+  <text x="120" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#4f9d69">MELON</text>
+  <text x="120" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#333">Original Edition</text>
+  <text x="120" y="272" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Fallback card art</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" role="img" aria-label="Draw pile card back">
+  <rect width="240" height="336" rx="18" fill="#1f1b17"/>
+  <rect x="12" y="12" width="216" height="312" rx="14" fill="#f7c948"/>
+  <rect x="27" y="27" width="186" height="282" rx="10" fill="#191714"/>
+  <path d="M120 72c25 0 46 18 50 42 23 8 37 27 37 51 0 34-27 60-63 60H95c-36 0-63-26-63-60 0-24 14-43 37-51 5-24 26-42 51-42Z" fill="#fff6d6"/>
+  <path d="M94 151c0-17 12-29 27-29s26 12 26 29c0 21-26 34-26 34s-27-13-27-34Z" fill="#f05245"/>
+  <circle cx="103" cy="149" r="5" fill="#191714"/>
+  <circle cx="137" cy="149" r="5" fill="#191714"/>
+  <text x="120" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="900" fill="#fff6d6">DRAW</text>
+</svg>

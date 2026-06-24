@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" role="img" aria-label="Hairy Potato Cat">
+  <rect width="240" height="336" rx="18" fill="#fffaf1"/>
+  <rect x="10" y="10" width="220" height="316" rx="14" fill="#b8863b"/>
+  <rect x="24" y="24" width="192" height="288" rx="12" fill="#fffdf7" opacity=".94"/>
+  <circle cx="120" cy="134" r="58" fill="#b8863b" opacity=".18"/><ellipse cx="120" cy="137" rx="48" ry="38" fill="#c79655" stroke="#b8863b" stroke-width="7"/><path d="M83 98l8 22M105 88l4 24M132 88l-5 24M157 99l-9 20" stroke="#b8863b" stroke-width="6" stroke-linecap="round"/>
+  <text x="120" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#161616">Hairy Potato Cat</text>
+  <text x="120" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#b8863b">POTATO</text>
+  <text x="120" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#333">Original Edition</text>
+  <text x="120" y="272" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Fallback card art</text>
+</svg>
